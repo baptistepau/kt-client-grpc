@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,10 +48,6 @@ fun ProductCard(name: String, price: Float, description: String) {
 @Preview
 fun App() {
 
-    var name by remember { mutableStateOf("Nom du produit") }
-    var description by remember { mutableStateOf("Description du produit") }
-    var price by remember { mutableStateOf(0.0f) }
-
     val channel = remember {
         ManagedChannelBuilder.forAddress("localhost", 50051)
             .usePlaintext()
@@ -58,18 +55,41 @@ fun App() {
     }
     val stub = remember{ProductServiceGrpc.newBlockingStub(channel)}
 
-    LaunchedEffect(Unit) {
-        val reponse = stub.getProduct(Product.GetProductRequest.newBuilder().setId(2).build())
+    var name by remember { mutableStateOf("Nom du produit") }
+    var description by remember { mutableStateOf("Description du produit") }
+    var price by remember { mutableStateOf(0.0f) }
+
+    var selectedId by remember { mutableIntStateOf(1) }
+    val options = listOf(1, 2, 3)
+
+
+
+    LaunchedEffect(selectedId) {
+        val reponse = stub.getProduct(Product.GetProductRequest.newBuilder().setId(selectedId).build())
         name = reponse.name;
         description = reponse.description;
         price = reponse.price
     }
 
     MaterialTheme {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top)
         ) {
+            SingleChoiceSegmentedButtonRow {
+                options.forEachIndexed { index, label ->
+                    SegmentedButton(
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = options.size
+                        ),
+                        onClick = { selectedId = label },
+                        selected = label == selectedId,
+                        label = { Text(label.toString()) }
+                    )
+                }
+            }
             ProductCard(
                 name = name,
                 price = price,
